@@ -13,7 +13,10 @@ void SetupHardware(void)
     LEDs_Init();
     USB_Init();
 
-    DDRD |= 0x0f;
+    DDRC  &= 0x0f;
+    PORTC &= 0x0f;
+    DDRD  &= 0xf0;
+    PORTD &= 0xf0;
 }
 
 int main(void)
@@ -44,30 +47,54 @@ void EVENT_USB_Device_ConfigurationChanged(void)
     LEDs_SetAllLEDs(ConfigSuccess ? LEDMASK_USB_READY : LEDMASK_USB_ERROR);
 }
 
+
+volatile uint8_t xc;
+volatile uint8_t yc;
+
+volatile int16_t dx;
+volatile int16_t dy;
+
+void timer(void) {
+    uint8_t tmp;
+    if(dx == 0 && dy == 0) {
+        // disable timer interrupt
+        return;
+    }
+    if(dx < 0) { dx++; xc--; }
+    else if(dx > 0) { dx--; xc++; }
+    if(dy < 0) { dy++; yc--; }
+    else if(dy > 0) { dy--; yc++; }
+    tmp = ((xc>>1)&3) | (((yc>>1)&3)<<2);
+    tmp ^= (tmp>>1)&5;
+    DDRD = (DDRD & 0xf0) | (tmp & 0x0f);
+    _delay_loop_2(468);
+}
+
+
+
+
+
 void EVENT_USB_Device_ControlRequest(void)
 {
 //    unsigned char buf[0x4] = {0, 1, 2, 3};
 
     switch (USB_ControlRequest.bmRequestType) {
     case 0x40:
-//        switch (USB_ControlRequest.bRequest) {
-//        case 0x00:
+        PORTD ^= 0x60;
+        switch (USB_ControlRequest.bRequest) {
+        case REQ_MOUSE_REL:
+            dx += (int16_t)USB_ControlRequest.wValue;
+            dy += (int16_t)USB_ControlRequest.wIndex;
+            while(dx != 0 || dy != 0) timer();
             Endpoint_ClearSETUP();
-//            Endpoint_Read_Control_Stream_LE(&buf, 4);
             Endpoint_ClearIN();
-            PORTD ^= 0xff;
-//            break;
-//        }
-        break;
-    case 0xc0:
-//        switch (USB_ControlRequest.bRequest) {
-//        case 0x00:
+            break;
+        case REQ_MOUSE_BTN:
+            DDRC = (DDRC & 0x0f) | (USB_ControlRequest.wValue << 4);
             Endpoint_ClearSETUP();
-//            Endpoint_Write_Control_Stream_LE(&buf, 4);
-            Endpoint_ClearOUT();
-            PORTD ^= 0xff;
-//            break;
-//        }
+            Endpoint_ClearIN();
+            break;
+        }
         break;
     }
 }

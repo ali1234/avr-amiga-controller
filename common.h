@@ -1,2 +1,6 @@
 #define VENDOR_ID 0xF055
 #define PRODUCT_ID 0xFFFF
+
+#define REQ_MOUSE_REL 1
+#define REQ_MOUSE_BTN 2
+#define REQ_KEYBOARD 3
