@@ -1,0 +1,76 @@
+avr-amiga-controller
+--------------------
+
+This software will allow you to control an Amiga using your
+PC keyboard and mouse - without unplugging them from your
+PC.
+
+It works as follows:
+
+ - You run a synergy server on your PC (http://synergy-foss.org)
+ - You configure a hotkey to switch to screen "amiga".
+ - The input from PC is redirected to the synergy-hw client
+      (Find this in the hostapp directory.)
+ - The firmware is flashed to an Atmega32U2 board 
+      (such as minimus 32 AVR)
+ - synergy-hw streams input to the AVR.
+ - The AVR emulates bus mouse and amiga keyboard signals 
+       (at hardware level)
+
+Of course, you also need to build correct cabling to connect the AVR
+to the Amiga keyboard and mouse ports. The mapping is like this
+
+AVR           Amiga (Bus Mouse) Mouse port
+PB4           XA
+PB5           XB
+PB6           YA 
+PB7           YB
+PC4           LEFT MOUSE BUTTON
+PC5           RIGHT MOUSE BUTTON
+PC6           MIDDLE MOUSE BUTTON
+GND           GND
+
+AVR           Amiga Keyboard Port
+PD0           CLOCK
+PD1           DATA
+GND           GND
+
+To compile it, you need to get LUFA library and put the path in
+the firmware/Makefile. Then run make from top level to build both
+parts of the software.
+
+To flash the firmware to your board and to run synergy-hw you need 
+to give your user permission on the AVR usb device. Put this in
+/etc/udev/rules.d/minimus.rules:
+
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="03eb", ATTR{idProduct}=="*", GROUP="plugdev"
+SUBSYSTEM=="usb", ACTION=="add", ATTR{idVendor}=="f055", ATTR{idProduct}=="*", GROUP="plugdev"
+
+(First line is for the bootloader, for flashing. Second line is the 
+device when running this firmware. Your user needs to be in group 
+plugdev.)
+
+Make a synergy.conf like this:
+
+section: screens
+  linux:
+  amiga:
+end
+
+section: options
+  keystroke(super+a) = lockCursorToScreen(on), switchToScreen(amiga)
+  keystroke(super+z) = switchToScreen(linux), lockCursorToScreen(off)
+  relativeMouseMoves = true
+end
+
+Launch synergys using this config:
+
+synergys -f -c synergy.conf -n linux
+
+Launch synergy-hw (no argument necessary, screen name and server 
+                   address are hardcoded)
+
+Press windows-a to flip to Amiga
+Press windows-z to return to PC.
+
+While controlling Amiga, pressing End will reboot the Amiga.
