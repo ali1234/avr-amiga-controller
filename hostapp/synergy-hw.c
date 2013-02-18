@@ -177,7 +177,10 @@ void s_mouserel(uSynergyCookie cookie, int16_t x, int16_t y)
 void s_keyboard(uSynergyCookie cookie, uint16_t key, uint16_t modifiers, uSynergyBool down,
                 uSynergyBool repeat)
 {
-    printf("keyboard, key=%d down=%d repeat=%d\n", key, down, repeat);
+    int result;
+    result = usb_request(REQ_KEYBOARD, key, down);
+    printf("keyboard, key=%2x down=%d repeat=%d - %d\n", key, down, repeat, result);
+
 }
 
 void s_joystick(uSynergyCookie cookie, uint8_t joyNum, uint16_t buttons,
